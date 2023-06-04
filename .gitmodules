@@ -1,0 +1,3 @@
+[submodule "fritzing-parts"]
+	path = fritzing-parts
+	url = https://github.com/htho/fritzing-parts
