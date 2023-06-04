@@ -1,5 +1,5 @@
-
 #include <USB-MIDI.h>
+
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 enum {
@@ -17,6 +17,7 @@ enum {
 
 #define MIDI_CHANNEL 1
 #define POT_NB 8
+#define PATCH_STS_REC 2000 // 2s recurence
 
 byte pot_pin[] = {A0,  A1, A2, A3,
                   A10, A9, A8, A7};
@@ -26,10 +27,20 @@ byte pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_C
 
 byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
+unsigned long last_sent_patch_sts = 0;
+
 enum
 {
-  PATCH_MSG = 1
+  PATCH_REQ, // In:  Request for patch status
+  PATCH_STS, // Out: Send patch array
+  PATCH_CMD  // In:  Change a patch
 };
+
+typedef struct
+{
+  byte msg_idx;
+  byte pot_mcc[POT_NB];
+} patch_sts;
 
 typedef struct
 {
@@ -38,16 +49,41 @@ typedef struct
   byte pot_idx;
   byte pot_mcc;
   byte syx_ftr; // 0xF7
-} patch_msg;
+} patch_cmd;
+
+typedef struct
+{
+  byte syx_hdr; // 0xF0
+  byte msg_idx;
+  byte syx_ftr; // 0xF7
+} patch_req;
+
+void sendPatchStatus()
+{
+  patch_sts sts;
+  sts.msg_idx = PATCH_STS;
+  memcpy(&sts.pot_mcc, &pot_mcc, POT_NB);
+  MIDI.sendSysEx(sizeof(patch_sts), (byte*)&sts);
+}
 
 void handleSysEx(byte* array, unsigned size)
 {
   if (size < 1) return;
-  if ((array[1] == PATCH_MSG) && (size == sizeof(patch_msg)))
+  switch (array[1])
   {
-    patch_msg* patch = (patch_msg*)array;
-    if (patch->pot_idx < POT_NB)
-      pot_mcc[patch->pot_idx] = patch->pot_mcc;
+    case PATCH_REQ:
+      sendPatchStatus();
+      break;
+    case PATCH_CMD:
+      if (size == sizeof(patch_cmd))
+      {
+        patch_cmd* patch = (patch_cmd*)array;
+        if (patch->pot_idx < POT_NB)
+          pot_mcc[patch->pot_idx] = patch->pot_mcc;
+      }
+      break;
+    default:
+      break;
   }
 }
 
