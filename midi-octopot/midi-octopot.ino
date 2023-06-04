@@ -26,14 +26,40 @@ byte pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_C
 
 byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
+enum
+{
+  PATCH_MSG = 1
+};
+
+typedef struct
+{
+  byte syx_hdr;
+  byte msg_idx;
+  byte pot_idx;
+  byte pot_mcc;
+  byte syx_ftr;
+} patch_msg;
+
+void handleSysEx(byte* array, unsigned size)
+{
+  if (size < 1) return;
+  if ((array[1] == PATCH_MSG) && (size == sizeof(patch_msg)))
+  {
+    patch_msg* patch = (patch_msg*)array;
+    pot_mcc[patch->pot_idx] = patch->pot_mcc;
+  }
+}
+
 void setup() {
   // put your setup code here, to run once:
    Serial.begin(115200);
    MIDI.begin(MIDI_CHANNEL_OMNI);
+   MIDI.setHandleSystemExclusive(handleSysEx);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  MIDI.read();
   for (byte i = 0; i < POT_NB; i++)
   {
     byte val = analogRead(pot_pin[i]) / 8;
