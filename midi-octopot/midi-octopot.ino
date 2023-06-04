@@ -33,11 +33,11 @@ enum
 
 typedef struct
 {
-  byte syx_hdr;
+  byte syx_hdr; // 0xF0
   byte msg_idx;
   byte pot_idx;
   byte pot_mcc;
-  byte syx_ftr;
+  byte syx_ftr; // 0xF7
 } patch_msg;
 
 void handleSysEx(byte* array, unsigned size)
