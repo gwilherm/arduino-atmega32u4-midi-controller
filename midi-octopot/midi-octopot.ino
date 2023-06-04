@@ -1,5 +1,6 @@
-#include <MIDIUSB.h>
-#include <MIDIUSB_Defs.h>
+
+#include <USB-MIDI.h>
+USBMIDI_CREATE_DEFAULT_INSTANCE();
 
 enum {
     MIDI_CC_PORTAMENTO_TIME             = 0x05,
@@ -14,7 +15,7 @@ enum {
     MIDI_CC_EFFECTS_4_DEPTH             = 0x5F, // Detune amount
 };
 
-#define MIDI_CHANNEL 0
+#define MIDI_CHANNEL 1
 #define POT_NB 8
 
 byte pot_pin[] = {A0,  A1, A2, A3,
@@ -25,17 +26,10 @@ byte pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_C
 
 byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-void controlChange(byte channel, byte control, byte value) {
-
-  midiEventPacket_t event = {0x0B, (byte)(0xB0 | channel), control, value};
-
-  MidiUSB.sendMIDI(event);
-  MidiUSB.flush();
-}
-
 void setup() {
   // put your setup code here, to run once:
    Serial.begin(115200);
+   MIDI.begin(MIDI_CHANNEL_OMNI);
 }
 
 void loop() {
@@ -46,7 +40,7 @@ void loop() {
     if (val != pot_val[i])
     {
       pot_val[i] = val;
-      controlChange(MIDI_CHANNEL, pot_mcc[i], pot_val[i]);
+      MIDI.sendControlChange(pot_mcc[i], pot_val[i], MIDI_CHANNEL);
     }
     char buf[5];
     sprintf(buf, "%3d ", (int)pot_val[i]);
