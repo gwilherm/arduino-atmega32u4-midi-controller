@@ -61,17 +61,23 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   MIDI.read();
+
+  char serial_output[32];
+  bool display_update = false;
+
   for (byte i = 0; i < POT_NB; i++)
   {
     byte val = analogRead(pot_pin[i]) / 8;
     if (val != pot_val[i])
     {
+      display_update = true;
       pot_val[i] = val;
       MIDI.sendControlChange(pot_mcc[i], pot_val[i], MIDI_CHANNEL);
     }
-    char buf[5];
-    sprintf(buf, "%3d ", (int)pot_val[i]);
-    Serial.print(buf);
+
+    sprintf(serial_output+3*i+i, "%03d ", (int)pot_val[i]);
   }
-  Serial.println();
+
+  if (display_update)
+    Serial.println(serial_output);
 }
