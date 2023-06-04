@@ -46,15 +46,16 @@ void handleSysEx(byte* array, unsigned size)
   if ((array[1] == PATCH_MSG) && (size == sizeof(patch_msg)))
   {
     patch_msg* patch = (patch_msg*)array;
-    pot_mcc[patch->pot_idx] = patch->pot_mcc;
+    if (patch->pot_idx < POT_NB)
+      pot_mcc[patch->pot_idx] = patch->pot_mcc;
   }
 }
 
 void setup() {
   // put your setup code here, to run once:
-   Serial.begin(115200);
-   MIDI.begin(MIDI_CHANNEL_OMNI);
-   MIDI.setHandleSystemExclusive(handleSysEx);
+  Serial.begin(115200);
+  MIDI.begin(MIDI_CHANNEL_OMNI);
+  MIDI.setHandleSystemExclusive(handleSysEx);
 }
 
 void loop() {
