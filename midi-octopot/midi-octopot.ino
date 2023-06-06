@@ -19,8 +19,8 @@ enum {
 #define POT_NB 8
 #define PATCH_STS_REC 2000 // 2s recurence
 
-byte pot_pin[] = {A0,  A1, A2, A3,
-                  A10, A9, A8, A7};
+byte pot_pin[] = {A10, A9, A8, A7,
+                  A0,  A1, A2, A3};
 
 byte pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_CC_PORTAMENTO_TIME, MIDI_CC_EFFECTS_1_DEPTH, 
                   MIDI_CC_SOUND_CONTROLLER_5, MIDI_CC_SOUND_CONTROLLER_4, MIDI_CC_EFFECTS_4_DEPTH, MIDI_CC_PAN_MSB};
