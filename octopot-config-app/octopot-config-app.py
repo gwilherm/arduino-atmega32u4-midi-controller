@@ -48,7 +48,7 @@ class Root:
 
         # Initialize MIDI ports
         client_name='Octopot Conf'
-        self.midi_in   = mido.open_input('input', client_name=client_name)
+        self.midi_in   = mido.open_input('input', client_name=client_name, callback=self.on_midi_receive)
         self.midi_out  = mido.open_output('output', client_name=client_name)
 
         # Initialize patch request timer
@@ -76,6 +76,19 @@ class Root:
         # Lose focus to be refreshed by the timer
         self.root.focus()
 
+    def on_midi_receive(self, midi_msg):
+        """
+        Callback to be called on MIDI in event.
+        """
+
+        if midi_msg.type == 'sysex' and midi_msg.data[0] == SysExMsg.PATCH_STS:
+            midi_cc = midi_msg.data[1:9]
+            for i in range(POT_NB):
+                # Do not update an Entry that being edited
+                if self.root.focus_get() != self.pot[i]:
+                    self.pot[i].delete(0,"end")
+                    self.pot[i].insert(0, midi_cc[i])
+
     def on_close(self):
         """
         Properly terminate at window closing.
@@ -92,17 +105,6 @@ class Root:
         """
 
         self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_REQ]))
-        resp = self.midi_in.poll()
-        while resp:
-            print(resp)
-            if resp.type == 'sysex' and resp.data[0] == SysExMsg.PATCH_STS:
-                midi_cc = resp.data[1:9]
-                for i in range(POT_NB):
-                    # Do not update an Entry that being edited
-                    if self.root.focus_get() != self.pot[i]:
-                        self.pot[i].delete(0,"end")
-                        self.pot[i].insert(0, midi_cc[i])
-            resp = self.midi_in.poll()
         self.root.after(REQUEST_REC, self.update_pots_cc)
 
 mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
