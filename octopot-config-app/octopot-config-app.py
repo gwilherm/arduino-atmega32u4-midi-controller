@@ -79,6 +79,8 @@ class Root:
     def on_midi_receive(self, midi_msg):
         """
         Callback to be called on MIDI in event.
+
+        @param midi_msg: The incoming MIDI message
         """
 
         if midi_msg.type == 'sysex' and midi_msg.data[0] == SysExMsg.PATCH_STS:
