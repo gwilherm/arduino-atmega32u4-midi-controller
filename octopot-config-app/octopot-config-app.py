@@ -28,7 +28,7 @@ class Root:
         for i in range(4, 8):
             self.pot += [tk.Entry()]
             self.pot[i].place(relx=1, y=pady, w=50, anchor='ne')
-            self.pot[i].bind('<Return>', self.on_change)
+            self.pot[i].bind('<Return>',  lambda event, idx=i: self.on_change(event,idx))
             pady += 105
 
         client_name='Octopot Conf'
