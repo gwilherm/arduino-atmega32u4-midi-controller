@@ -1,4 +1,5 @@
 #include <USB-MIDI.h>
+#include <EEPROM.h>
 
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 
@@ -31,9 +32,10 @@ unsigned long last_sent_patch_sts = 0;
 
 enum
 {
-  PATCH_REQ, // In:  Request for patch status
-  PATCH_STS, // Out: Send patch array
-  PATCH_CMD  // In:  Change a patch
+  PATCH_REQ, // In:  Request for current configuration
+  PATCH_STS, // Out: Send configuration
+  PATCH_CMD, // In:  New patch command
+  SAVE_CMD   // In:  Save current configuration command
 };
 
 typedef struct
@@ -51,19 +53,38 @@ typedef struct
   byte syx_ftr; // 0xF7
 } patch_cmd;
 
-typedef struct
-{
-  byte syx_hdr; // 0xF0
-  byte msg_idx;
-  byte syx_ftr; // 0xF7
-} patch_req;
-
 void sendPatchStatus()
 {
   patch_sts sts;
   sts.msg_idx = PATCH_STS;
   memcpy(&sts.pot_mcc, &pot_mcc, POT_NB);
   MIDI.sendSysEx(sizeof(patch_sts), (byte*)&sts);
+}
+
+void updatePatch(byte* array, unsigned size)
+{
+  if (size == sizeof(patch_cmd))
+  {
+    patch_cmd* patch = (patch_cmd*)array;
+    if (patch->pot_idx < POT_NB)
+      pot_mcc[patch->pot_idx] = patch->pot_mcc;
+  }
+}
+
+void saveConfig()
+{
+  for (int i = 0; i < POT_NB; i++)
+    EEPROM.update(i, pot_mcc[i]);
+}
+
+void restoreConfig()
+{
+  for (int i = 0; i < POT_NB; i++)
+  {
+    byte value = EEPROM.read(i);
+    if (value <= 127)
+      pot_mcc[i] = value;
+  }
 }
 
 void handleSysEx(byte* array, unsigned size)
@@ -75,12 +96,10 @@ void handleSysEx(byte* array, unsigned size)
       sendPatchStatus();
       break;
     case PATCH_CMD:
-      if (size == sizeof(patch_cmd))
-      {
-        patch_cmd* patch = (patch_cmd*)array;
-        if (patch->pot_idx < POT_NB)
-          pot_mcc[patch->pot_idx] = patch->pot_mcc;
-      }
+      updatePatch(array, size);
+      break;
+    case SAVE_CMD:
+      saveConfig();
       break;
     default:
       break;
@@ -88,14 +107,15 @@ void handleSysEx(byte* array, unsigned size)
 }
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
+
+  restoreConfig();
+
   MIDI.begin(MIDI_CHANNEL_OMNI);
   MIDI.setHandleSystemExclusive(handleSysEx);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   MIDI.read();
 
   char serial_output[32];
