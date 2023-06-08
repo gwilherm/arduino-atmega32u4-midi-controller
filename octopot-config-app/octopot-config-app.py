@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 from enum import IntEnum
 
 import mido
+import sys
 
 POT_NB      = 8
 REQUEST_REC = 2000
@@ -28,6 +29,19 @@ class Root:
         label.image = octopot
         label.pack()
 
+        self.input_conn = tk.StringVar(self.root)
+        self.input_conn.set(mido.get_input_names()[0])
+        self.output_conn = tk.StringVar(self.root)
+        self.output_conn.set(mido.get_output_names()[0])
+
+        self.input_conn.trace('w', self.on_change_input_conn)
+        self.output_conn.trace('w', self.on_change_output_conn)
+
+        ddin = tk.OptionMenu(self.root, self.input_conn, *mido.get_input_names())
+        ddin.place(y=10, w=200)
+        ddout = tk.OptionMenu(self.root, self.output_conn, *mido.get_output_names())
+        ddout.place(relx=1, y=10, w=200, anchor='ne')
+
         self.pot = []
 
         # Right side text boxes
@@ -35,7 +49,7 @@ class Root:
         for i in range(int(POT_NB / 2)):
             self.pot += [tk.Entry()]
             self.pot[i].place(y=pady, w=50)
-            self.pot[i].bind('<Return>', lambda event, idx=i: self.on_change(event,idx))
+            self.pot[i].bind('<Return>', lambda event, idx=i: self.on_change_cc(event,idx))
             pady += 105
 
         # Left side text boxes
@@ -43,13 +57,12 @@ class Root:
         for i in range(int(POT_NB / 2), POT_NB):
             self.pot += [tk.Entry()]
             self.pot[i].place(relx=1, y=pady, w=50, anchor='ne')
-            self.pot[i].bind('<Return>',  lambda event, idx=i: self.on_change(event,idx))
+            self.pot[i].bind('<Return>',  lambda event, idx=i: self.on_change_cc(event,idx))
             pady += 105
 
         # Initialize MIDI ports
-        client_name='Octopot Conf'
-        self.midi_in   = mido.open_input('input', client_name=client_name, callback=self.on_midi_receive)
-        self.midi_out  = mido.open_output('output', client_name=client_name)
+        self.midi_in   = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
+        self.midi_out  = mido.open_output(self.output_conn.get())
 
         # Initialize patch request timer
         self.update_pots_cc()
@@ -57,7 +70,15 @@ class Root:
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
         self.root.mainloop()
 
-    def on_change(self, e, idx):
+    def on_change_input_conn(self, *args):
+        self.midi_in.close()
+        self.midi_in = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
+
+    def on_change_output_conn(self, *args):
+        self.midi_out.close()
+        self.midi_out = mido.open_output(self.input_conn.get())
+
+    def on_change_cc(self, e, idx):
         """
         Calback to validate Entry input
         Sends the new patch for a knob.
@@ -109,6 +130,7 @@ class Root:
         self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_REQ]))
         self.root.after(REQUEST_REC, self.update_pots_cc)
 
-mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
-
-root = Root()
+if __name__ == '__main__':
+#    mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
+    mido.set_backend('mido.backends.rtmidi/LINUX_ALSA')
+    root = Root()
