@@ -11,9 +11,10 @@ POT_NB      = 8
 REQUEST_REC = 2000
 
 class SysExMsg(IntEnum):
-  PATCH_REQ = 0, # In:  Request for patch status
-  PATCH_STS = 1, # Out: Send patch array
-  PATCH_CMD = 2  # In:  Change a patch
+  PATCH_REQ = 0 # Out: Request for current config
+  PATCH_STS = 1 # In:  Send the current config
+  PATCH_CMD = 2 # Out: Change a patch
+  SAVE_CMD  = 3 # In:  Save the current config
 
 class Root:
     def __init__(self):
@@ -60,6 +61,9 @@ class Root:
             self.pot[i].bind('<Return>',  lambda event, idx=i: self.on_change_cc(event,idx))
             pady += 105
 
+        save_btn = tk.Button(text='Save patch into EEPROM', command = self.on_save)
+        save_btn.pack()
+        
         # Initialize MIDI ports
         self.midi_in   = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
         self.midi_out  = mido.open_output(self.output_conn.get())
@@ -69,6 +73,10 @@ class Root:
 
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
         self.root.mainloop()
+
+    def on_save(self):
+        # Send the SysEx message
+        self.midi_out.send(mido.Message('sysex', data=[SysExMsg.SAVE_CMD]))
 
     def on_change_input_conn(self, *args):
         self.midi_in.close()
@@ -131,6 +139,6 @@ class Root:
         self.root.after(REQUEST_REC, self.update_pots_cc)
 
 if __name__ == '__main__':
-#    mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
-    mido.set_backend('mido.backends.rtmidi/LINUX_ALSA')
+    mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
+#    mido.set_backend('mido.backends.rtmidi/LINUX_ALSA')
     root = Root()
