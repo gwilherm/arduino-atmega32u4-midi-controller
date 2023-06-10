@@ -17,6 +17,8 @@ class SysExMsg(IntEnum):
   SAVE_CMD  = 3 # In:  Save the current config
 
 class Root:
+    midi_in = None
+    midi_out = None
     def __init__(self):
         """ Initialization """
         self.root = tk.Tk()
@@ -30,18 +32,22 @@ class Root:
         label.image = octopot
         label.pack()
 
+        input_list  = mido.get_input_names()
+        output_list = mido.get_output_names()
         self.input_conn = tk.StringVar(self.root)
-        self.input_conn.set(mido.get_input_names()[0])
+        if len(input_list) > 0:
+            self.input_conn.set(input_list[0])
         self.output_conn = tk.StringVar(self.root)
-        self.output_conn.set(mido.get_output_names()[0])
+        if len(output_list) > 0:
+            self.output_conn.set(output_list[0])
 
         self.input_conn.trace('w', self.on_change_input_conn)
         self.output_conn.trace('w', self.on_change_output_conn)
 
-        ddin = tk.OptionMenu(self.root, self.input_conn, *mido.get_input_names())
-        ddin.place(y=10, w=200)
-        ddout = tk.OptionMenu(self.root, self.output_conn, *mido.get_output_names())
-        ddout.place(relx=1, y=10, w=200, anchor='ne')
+        self.ddin = tk.OptionMenu(self.root, self.input_conn, value='')
+        self.ddin.place(y=10, w=200)
+        self.ddout = tk.OptionMenu(self.root, self.output_conn, value='')
+        self.ddout.place(relx=1, y=10, w=200, anchor='ne')
 
         self.pot = []
 
@@ -65,26 +71,31 @@ class Root:
         save_btn.pack()
         
         # Initialize MIDI ports
-        self.midi_in   = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
-        self.midi_out  = mido.open_output(self.output_conn.get())
+        if self.input_conn.get():
+            self.midi_in   = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
+        if self.output_conn.get():
+            self.midi_out  = mido.open_output(self.output_conn.get())
 
-        # Initialize patch request timer
-        self.update_pots_cc()
+        # Initialize timer
+        self.update()
 
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
         self.root.mainloop()
 
     def on_save(self):
         # Send the SysEx message
-        self.midi_out.send(mido.Message('sysex', data=[SysExMsg.SAVE_CMD]))
+        if self.midi_out:
+           self.midi_out.send(mido.Message('sysex', data=[SysExMsg.SAVE_CMD]))
 
     def on_change_input_conn(self, *args):
-        self.midi_in.close()
+        if self.midi_in:
+            self.midi_in.close()
         self.midi_in = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
 
     def on_change_output_conn(self, *args):
-        self.midi_out.close()
-        self.midi_out = mido.open_output(self.input_conn.get())
+        if self.midi_out:
+            self.midi_out.close()
+        self.midi_out = mido.open_output(self.output_conn.get())
 
     def on_change_cc(self, e, idx):
         """
@@ -95,12 +106,13 @@ class Root:
         @param idx: index of the Entry
         """
 
-        # Get the Entry value
-        midi_cc = e.widget.get()
-        print(str(idx) + ' => ' + midi_cc)
+        if self.midi_out:
+            # Get the Entry value
+            midi_cc = e.widget.get()
+            print(str(idx) + ' => ' + midi_cc)
 
-        # Send the SysEx message
-        self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_CMD, idx, int(midi_cc)]))
+            # Send the SysEx message
+            self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_CMD, idx, int(midi_cc)]))
 
         # Lose focus to be refreshed by the timer
         self.root.focus()
@@ -125,18 +137,37 @@ class Root:
         Properly terminate at window closing.
         """
 
-        self.midi_in.close()
-        self.midi_out.close()
+        if self.midi_in:
+            self.midi_in.close()
+        if self.midi_out:
+            self.midi_out.close()
+
         self.root.destroy()
 
-    def update_pots_cc(self):
+    def update(self):
         """
-        Patch request timer.
-        Sends a SysEx message to ask for the current patch
+        Timer.
+        Sends a SysEx message to request for the current patch.
+        Update midi input and output lists
         """
 
-        self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_REQ]))
-        self.root.after(REQUEST_REC, self.update_pots_cc)
+        # Send patch request
+        if self.midi_out:
+            self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_REQ]))
+        
+        # Update MIDI ports
+        inmenu = self.ddin['menu']
+        inmenu.delete(0, 'end')
+        for input in mido.get_input_names():
+            inmenu.add_command(label=input,
+                command=lambda value=input: self.input_conn.set(value))
+        outmenu = self.ddout['menu']
+        outmenu.delete(0, 'end')
+        for output in mido.get_output_names():
+            outmenu.add_command(label=output,
+                command=lambda value=output: self.output_conn.set(value))
+
+        self.root.after(REQUEST_REC, self.update)
 
 if __name__ == '__main__':
     mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
