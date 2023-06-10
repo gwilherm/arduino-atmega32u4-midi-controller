@@ -19,8 +19,9 @@ Arduino SysEx programmable 8 Knobs MIDI Controller inspired by [Crius Octapot Mi
   * Port: `/dev/ttyACM0`
   * Upload
 
-### Command line
+### Command line (Ubuntu)
 ```
+sudo apt install arduino-mk
 cd midi-octopot
 make
 make upload
