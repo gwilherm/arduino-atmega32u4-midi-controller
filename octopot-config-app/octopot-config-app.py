@@ -4,6 +4,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from enum import IntEnum
 
+import argparse
 import mido
 import sys
 
@@ -170,6 +171,20 @@ class Root:
         self.root.after(REQUEST_REC, self.update)
 
 if __name__ == '__main__':
-    mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
-#    mido.set_backend('mido.backends.rtmidi/LINUX_ALSA')
+    parser = argparse.ArgumentParser(
+        prog=sys.argv[0],
+        description='This application configures your Octopot device')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-a', '--alsa', action='store_true', help='Use ALSA backend.')
+    group.add_argument('-j', '--jack', action='store_true', help='Use JACK backend (Default if available).')
+    args = parser.parse_args()
+    
+    is_jack_available = 'UNIX_JACK' in mido.backend.module.get_api_names()
+    if not args.alsa and is_jack_available:
+        mido.set_backend('mido.backends.rtmidi/UNIX_JACK')
+    else:
+        mido.set_backend('mido.backends.rtmidi/LINUX_ALSA')
+    
+    print('Using: ' + mido.backend.api)
+
     root = Root()
