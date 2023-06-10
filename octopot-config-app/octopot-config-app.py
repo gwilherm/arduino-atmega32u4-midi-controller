@@ -15,7 +15,8 @@ class SysExMsg(IntEnum):
   PATCH_REQ = 0 # Out: Request for current config
   PATCH_STS = 1 # In:  Send the current config
   PATCH_CMD = 2 # Out: Change a patch
-  SAVE_CMD  = 3 # In:  Save the current config
+  SAVE_CMD  = 3 # Out: Save the current config
+  RESET_CMD = 4 # Out: Save the current config
 
 class Root:
     midi_in = None
@@ -71,6 +72,9 @@ class Root:
         save_btn = tk.Button(text='Save patch into EEPROM', command = self.on_save)
         save_btn.pack()
         
+        save_btn = tk.Button(text='Reset to default config', command = self.on_reset)
+        save_btn.pack()
+        
         # Initialize MIDI ports
         if self.input_conn.get():
             self.midi_in   = mido.open_input(self.input_conn.get(), callback=self.on_midi_receive)
@@ -87,6 +91,11 @@ class Root:
         # Send the SysEx message
         if self.midi_out:
            self.midi_out.send(mido.Message('sysex', data=[SysExMsg.SAVE_CMD]))
+
+    def on_reset(self):
+        # Send the SysEx message
+        if self.midi_out:
+           self.midi_out.send(mido.Message('sysex', data=[SysExMsg.RESET_CMD]))
 
     def on_change_input_conn(self, *args):
         if self.midi_in:

@@ -23,9 +23,10 @@ enum {
 byte pot_pin[] = {A10, A9, A8, A7,
                   A0,  A1, A2, A3};
 
-byte pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_CC_PORTAMENTO_TIME, MIDI_CC_EFFECTS_1_DEPTH, 
-                  MIDI_CC_SOUND_CONTROLLER_5, MIDI_CC_SOUND_CONTROLLER_4, MIDI_CC_EFFECTS_4_DEPTH, MIDI_CC_PAN_MSB};
+byte default_pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3, MIDI_CC_PORTAMENTO_TIME, MIDI_CC_EFFECTS_1_DEPTH, 
+                          MIDI_CC_SOUND_CONTROLLER_5, MIDI_CC_SOUND_CONTROLLER_4, MIDI_CC_EFFECTS_4_DEPTH, MIDI_CC_PAN_MSB};
 
+byte pot_mcc[] = {0, 0, 0, 0, 0, 0, 0, 0};
 byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 unsigned long last_sent_patch_sts = 0;
@@ -35,7 +36,8 @@ enum
   PATCH_REQ, // In:  Request for current configuration
   PATCH_STS, // Out: Send configuration
   PATCH_CMD, // In:  New patch command
-  SAVE_CMD   // In:  Save current configuration command
+  SAVE_CMD,  // In:  Save current configuration command
+  RESET_CMD  // In:  Restore default configuration
 };
 
 typedef struct
@@ -84,7 +86,15 @@ void restoreConfig()
     byte value = EEPROM.read(i);
     if (value <= 127)
       pot_mcc[i] = value;
+    else
+      pot_mcc[i] = default_pot_mcc[i];
   }
+}
+
+void resetConfig()
+{
+  for (int i = 0; i < POT_NB; i++)
+    pot_mcc[i] = default_pot_mcc[i];
 }
 
 void handleSysEx(byte* array, unsigned size)
@@ -100,6 +110,9 @@ void handleSysEx(byte* array, unsigned size)
       break;
     case SAVE_CMD:
       saveConfig();
+      break;
+    case RESET_CMD:
+      resetConfig();
       break;
     default:
       break;
