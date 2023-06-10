@@ -33,8 +33,8 @@ class Root:
         label.image = octopot
         label.pack()
 
-        input_list  = mido.get_input_names()
-        output_list = mido.get_output_names()
+        input_list  = list(set(mido.get_input_names()))
+        output_list = list(set(mido.get_output_names()))
         self.input_conn = tk.StringVar(self.root)
         if len(input_list) > 0:
             self.input_conn.set(input_list[0])
@@ -159,12 +159,12 @@ class Root:
         # Update MIDI ports
         inmenu = self.ddin['menu']
         inmenu.delete(0, 'end')
-        for input in mido.get_input_names():
+        for input in set(mido.get_input_names()):
             inmenu.add_command(label=input,
                 command=lambda value=input: self.input_conn.set(value))
         outmenu = self.ddout['menu']
         outmenu.delete(0, 'end')
-        for output in mido.get_output_names():
+        for output in set(mido.get_output_names()):
             outmenu.add_command(label=output,
                 command=lambda value=output: self.output_conn.set(value))
 
