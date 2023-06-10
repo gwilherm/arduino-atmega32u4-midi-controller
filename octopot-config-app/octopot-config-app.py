@@ -7,6 +7,7 @@ from enum import IntEnum
 import argparse
 import mido
 import sys
+import os
 
 POT_NB      = 8
 REQUEST_REC = 2000
@@ -27,7 +28,7 @@ class Root:
         self.root.title('Octopot Configuration')
         self.root.resizable(0, 0)
 
-        im = Image.open("octopot.png")
+        im = Image.open(os.path.join(sys.path[0], 'octopot.png'))
         octopot = ImageTk.PhotoImage(im)
         
         label = tk.Label(self.root, image=octopot)
