@@ -19,7 +19,7 @@ Arduino SysEx programmable 8 Knobs MIDI Controller inspired by [Crius Octapot Mi
   * Port: `/dev/ttyACM0`
   * Upload
 
-### Command line (Ubuntu)
+### Command line (Ubuntu/Debian)
 ```shell
 sudo apt install arduino-mk
 cd midi-octopot
@@ -27,8 +27,9 @@ make
 make upload
 ```
 
-## Octopot Configuration App
+## Octopot Configuration App (Ubuntu/Debian)
 ```shell
+sudo apt install python3-rtmidi
 cd octopot-config-app
 python3 -m venv venv
 source venv/bin/activate
@@ -38,4 +39,5 @@ python3 -m pip install -r requirements.txt
 # Launch using Alsa
 ./octopot-config-app.py -a
 ```
+
 ![](doc/octopot-config-app.png)
