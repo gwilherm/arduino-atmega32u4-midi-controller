@@ -41,7 +41,7 @@ typedef struct
 {
   byte msg_idx;
   byte pot_mcc[POT_NB];
-} patch_sts;
+} patch_sts_t;
 
 typedef struct
 {
@@ -50,21 +50,21 @@ typedef struct
   byte pot_idx;
   byte pot_mcc;
   byte syx_ftr; // 0xF7
-} patch_cmd;
+} patch_cmd_t;
 
 void sendPatchStatus()
 {
-  patch_sts sts;
+  patch_sts_t sts;
   sts.msg_idx = PATCH_STS;
   memcpy(&sts.pot_mcc, &pot_mcc, POT_NB);
-  MIDI.sendSysEx(sizeof(patch_sts), (byte*)&sts);
+  MIDI.sendSysEx(sizeof(patch_sts_t), (byte*)&sts);
 }
 
 void updatePatch(byte* array, unsigned size)
 {
-  if (size == sizeof(patch_cmd))
+  if (size == sizeof(patch_cmd_t))
   {
-    patch_cmd* patch = (patch_cmd*)array;
+    patch_cmd_t* patch = (patch_cmd_t*)array;
     if (patch->pot_idx < POT_NB)
       pot_mcc[patch->pot_idx] = patch->pot_mcc;
   }
