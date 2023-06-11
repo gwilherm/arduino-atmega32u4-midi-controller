@@ -18,7 +18,6 @@ enum {
 
 #define MIDI_CHANNEL 1
 #define POT_NB 8
-#define PATCH_STS_REC 2000 // 2s recurence
 
 byte pot_pin[] = {A10, A9, A8, A7,
                   A0,  A1, A2, A3};
@@ -28,8 +27,6 @@ byte default_pot_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_3
 
 byte pot_mcc[] = {0, 0, 0, 0, 0, 0, 0, 0};
 byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-unsigned long last_sent_patch_sts = 0;
 
 enum
 {
