@@ -67,6 +67,7 @@ byte pot_val[] = {0, 0, 0, 0, 0, 0, 0, 0};
 byte btn_pin[] = {2, 3, 4, 5};
 
 byte default_btn_mcc[] = {MIDI_CC_SOUND_CONTROLLER_2, MIDI_CC_SOUND_CONTROLLER_5, MIDI_CC_PORTAMENTO_ON_OFF, MIDI_CC_ALL_NOTES_OFF};
+byte default_btn_tog[] = {                     false,                      false,                      true,                 false};
 
 btn_t btn_cfg[BTN_NB];
 int  btn_state[] = {0, 0, 0, 0};
@@ -77,7 +78,7 @@ void sendPatchStatus()
   patch_sts_t sts;
   sts.msg_idx = PATCH_STS;
   memcpy(&sts.pot_mcc, &pot_mcc, POT_NB);
-  memcpy(&sts.btn_cfg, &btn_cfg, BTN_NB);
+  memcpy(&sts.btn_cfg, &btn_cfg, BTN_NB*sizeof(btn_t));
   MIDI.sendSysEx(sizeof(patch_sts_t), (byte*)&sts);
 }
 
@@ -95,6 +96,11 @@ void saveConfig()
 {
   for (int i = 0; i < POT_NB; i++)
     EEPROM.update(i, pot_mcc[i]);
+  for (int i = 0; i < BTN_NB; i++)
+  {
+    EEPROM.update(POT_NB+i,   btn_cfg[i].mcc);
+    EEPROM.update(POT_NB+i+1, btn_cfg[i].tog);
+  }
 }
 
 void restoreConfig()
@@ -106,6 +112,21 @@ void restoreConfig()
       pot_mcc[i] = value;
     else
       pot_mcc[i] = default_pot_mcc[i];
+  }
+
+  for (int i = 0; i < BTN_NB; i++)
+  {
+    byte value = EEPROM.read(POT_NB+i);
+    if (value <= 127)
+      btn_cfg[i].mcc = value;
+    else
+      btn_cfg[i].mcc = default_btn_mcc[i];
+
+    value = EEPROM.read(POT_NB+i+1);
+    if (value <= 127)
+      btn_cfg[i].tog = (bool)value;
+    else
+      btn_cfg[i].tog = default_btn_tog[i];
   }
 }
 
@@ -141,7 +162,6 @@ void setup() {
   Serial.begin(115200);
 
   memset(&btn_cfg, 0, sizeof(btn_t)*BTN_NB);
-  btn_cfg[3].tog = true;
 
   restoreConfig();
 
