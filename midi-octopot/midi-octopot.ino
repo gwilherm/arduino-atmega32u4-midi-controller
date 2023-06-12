@@ -24,11 +24,13 @@ enum {
 
 enum
 {
-  PATCH_REQ, // In:  Request for current configuration
-  PATCH_STS, // Out: Send configuration
-  PATCH_CMD, // In:  New patch command
-  SAVE_CMD,  // In:  Save current configuration command
-  RESET_CMD  // In:  Restore default configuration
+  PATCH_REQ,      // In:  Request for current configuration
+  PATCH_STS,      // Out: Send configuration
+  PATCH_POT_CMD,  // In:  Change a pot patch
+  PATCH_BTN_CMD,  // In:  Change a button patch
+  TOGGLE_BTN_CMD, // In:  Change a button toggle
+  SAVE_CMD,       // In:  Save current configuration command
+  RESET_CMD       // In:  Restore default configuration
 };
 
 typedef struct
@@ -48,8 +50,8 @@ typedef struct
 {
   byte syx_hdr; // 0xF0
   byte msg_idx;
-  byte pot_idx;
-  byte pot_mcc;
+  byte idx;
+  byte val;
   byte syx_ftr; // 0xF7
 } patch_cmd_t;
 
@@ -82,13 +84,33 @@ void sendPatchStatus()
   MIDI.sendSysEx(sizeof(patch_sts_t), (byte*)&sts);
 }
 
-void updatePatch(byte* array, unsigned size)
+void updatePotPatch(byte* array, unsigned size)
 {
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if (patch->pot_idx < POT_NB)
-      pot_mcc[patch->pot_idx] = patch->pot_mcc;
+    if (patch->idx < POT_NB)
+      pot_mcc[patch->idx] = patch->val;
+  }
+}
+
+void updateBtnPatch(byte* array, unsigned size)
+{
+  if (size == sizeof(patch_cmd_t))
+  {
+    patch_cmd_t* patch = (patch_cmd_t*)array;
+    if (patch->idx < BTN_NB)
+      btn_cfg[patch->idx].mcc = patch->val;
+  }
+}
+
+void updateBtnToggle(byte* array, unsigned size)
+{
+  if (size == sizeof(patch_cmd_t))
+  {
+    patch_cmd_t* patch = (patch_cmd_t*)array;
+    if (patch->idx < BTN_NB)
+      btn_cfg[patch->idx].tog = patch->val;
   }
 }
 
@@ -144,8 +166,14 @@ void handleSysEx(byte* array, unsigned size)
     case PATCH_REQ:
       sendPatchStatus();
       break;
-    case PATCH_CMD:
-      updatePatch(array, size);
+    case PATCH_POT_CMD:
+      updatePotPatch(array, size);
+      break;
+    case PATCH_BTN_CMD:
+      updateBtnPatch(array, size);
+      break;
+    case TOGGLE_BTN_CMD:
+      updateBtnToggle(array, size);
       break;
     case SAVE_CMD:
       saveConfig();
