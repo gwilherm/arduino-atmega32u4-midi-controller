@@ -2,6 +2,11 @@
 
 Arduino SysEx programmable 8 Knobs MIDI Controller inspired by [Crius Octapot Midi Controller](https://www.instructables.com/Crius-OctaPot-Midi-Controller) but using ATmega32u4 microcontroller in order to use MIDI USB.
 
+This is the simple version of the controller with only 8 Knobs.
+
+To get the version with additional 4 Push buttons,
+go to the [buttons feature branch](https://github.com/gwilherm/arduino-atmega32u4-midi-octopot/tree/features/buttons).
+
 ## Photo
 ![](doc/photo.jpg)
 
