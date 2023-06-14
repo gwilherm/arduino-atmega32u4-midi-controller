@@ -87,7 +87,6 @@ class Root:
             self.var_tog[i].trace('w', lambda *args,idx=i: self.on_change_btn_tog(idx))
             btn_tog = tk.Checkbutton(text='Tog', variable=self.var_tog[i])
             btn_tog.place(x=padx+35, y=pady, w=50)
-#            self.btn_tog[i].bind('<1>', lambda event, idx=i: self.on_change_btn_tog(event, idx))
             pady += 105
 
         save_btn = tk.Button(text='Save patch into EEPROM', command = self.on_save)
