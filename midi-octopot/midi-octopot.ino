@@ -89,7 +89,7 @@ void updatePotPatch(byte* array, unsigned size)
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if (patch->idx < POT_NB)
+    if ((patch->idx < POT_NB) && (patch->val <= 127))
       pot_mcc[patch->idx] = patch->val;
   }
 }
@@ -99,7 +99,7 @@ void updateBtnPatch(byte* array, unsigned size)
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if (patch->idx < BTN_NB)
+    if ((patch->idx < BTN_NB) && (patch->val <= 127))
       btn_cfg[patch->idx].mcc = patch->val;
   }
 }
@@ -109,7 +109,7 @@ void updateBtnToggle(byte* array, unsigned size)
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if (patch->idx < BTN_NB)
+    if ((patch->idx < BTN_NB) && (patch->val <= 1))
       btn_cfg[patch->idx].tog = patch->val;
   }
 }
