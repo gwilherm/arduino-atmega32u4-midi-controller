@@ -65,7 +65,7 @@ void updatePatch(byte* array, unsigned size)
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if (patch->pot_idx < POT_NB)
+    if ((patch->pot_idx < POT_NB) && (patch->pot_mcc <= 127))
       pot_mcc[patch->pot_idx] = patch->pot_mcc;
   }
 }
