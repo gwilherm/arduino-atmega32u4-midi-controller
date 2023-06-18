@@ -10,14 +10,17 @@ import sys
 import os
 
 POT_NB      = 8
+BTN_NB      = 4
 REQUEST_REC = 2000
 
 class SysExMsg(IntEnum):
   PATCH_REQ = 0 # Out: Request for current config
   PATCH_STS = 1 # In:  Send the current config
-  PATCH_CMD = 2 # Out: Change a patch
-  SAVE_CMD  = 3 # Out: Save the current config
-  RESET_CMD = 4 # Out: Save the current config
+  PATCH_POT_CMD = 2 # Out: Change a pot patch
+  PATCH_BTN_CMD = 3 # Out: Change a button patch
+  TOGGLE_BTN_CMD = 4 # Out: Change a button toggle
+  SAVE_CMD  = 5 # Out: Save the current config
+  RESET_CMD = 6 # Out: Save the current config
 
 class Root:
     midi_in = None
@@ -58,16 +61,32 @@ class Root:
         pady=300
         for i in range(int(POT_NB / 2)):
             self.pot += [tk.Entry()]
-            self.pot[i].place(y=pady, w=50)
-            self.pot[i].bind('<Return>', lambda event, idx=i: self.on_change_cc(event,idx))
+            self.pot[i].place(y=pady, w=30)
+            self.pot[i].bind('<Return>', lambda event, idx=i: self.on_change_cc(event, SysExMsg.PATCH_POT_CMD, idx))
             pady += 105
 
         # Left side text boxes
         pady=300
         for i in range(int(POT_NB / 2), POT_NB):
             self.pot += [tk.Entry()]
-            self.pot[i].place(relx=1, y=pady, w=50, anchor='ne')
-            self.pot[i].bind('<Return>',  lambda event, idx=i: self.on_change_cc(event,idx))
+            self.pot[i].place(relx=1, y=pady, w=30, anchor='ne')
+            self.pot[i].bind('<Return>', lambda event, idx=i: self.on_change_cc(event, SysExMsg.PATCH_POT_CMD, idx))
+            pady += 105
+
+        self.btn_mcc = []
+        self.var_tog = []
+
+        # Buttons
+        pady=360
+        padx=265
+        for i in range(BTN_NB):
+            self.btn_mcc += [tk.Entry()]
+            self.btn_mcc[i].place(x=padx, y=pady, w=30)
+            self.btn_mcc[i].bind('<Return>', lambda event, idx=i: self.on_change_cc(event, SysExMsg.PATCH_BTN_CMD, idx))
+            self.var_tog += [tk.IntVar()]
+            self.var_tog[i].trace('w', lambda *args,idx=i: self.on_change_btn_tog(idx))
+            btn_tog = tk.Checkbutton(text='Tog', variable=self.var_tog[i])
+            btn_tog.place(x=padx+35, y=pady, w=50)
             pady += 105
 
         save_btn = tk.Button(text='Save patch into EEPROM', command = self.on_save)
@@ -108,12 +127,13 @@ class Root:
             self.midi_out.close()
         self.midi_out = mido.open_output(self.output_conn.get())
 
-    def on_change_cc(self, e, idx):
+    def on_change_cc(self, e, msg, idx):
         """
         Calback to validate Entry input
-        Sends the new patch for a knob.
+        Sends the new patch for a controller.
 
         @param e:   event
+        @param msg: sysex message id (PATCH_POT_CMD or PATCH_BTN_CMD)
         @param idx: index of the Entry
         """
 
@@ -123,10 +143,17 @@ class Root:
             print(str(idx) + ' => ' + midi_cc)
 
             # Send the SysEx message
-            self.midi_out.send(mido.Message('sysex', data=[SysExMsg.PATCH_CMD, idx, int(midi_cc)]))
+            self.midi_out.send(mido.Message('sysex', data=[msg, idx, int(midi_cc)]))
 
         # Lose focus to be refreshed by the timer
         self.root.focus()
+
+    def on_change_btn_tog(self, idx):
+        tog = self.var_tog[idx].get()
+        print(str(idx) + ' => ' + str(tog))
+
+        # Send the SysEx message
+        self.midi_out.send(mido.Message('sysex', data=[SysExMsg.TOGGLE_BTN_CMD, idx, tog]))
 
     def on_midi_receive(self, midi_msg):
         """
@@ -136,12 +163,25 @@ class Root:
         """
 
         if midi_msg.type == 'sysex' and midi_msg.data[0] == SysExMsg.PATCH_STS:
-            midi_cc = midi_msg.data[1:9]
+            pot_mcc = midi_msg.data[1:POT_NB+1]
             for i in range(POT_NB):
                 # Do not update an Entry that being edited
                 if self.root.focus_get() != self.pot[i]:
                     self.pot[i].delete(0,"end")
-                    self.pot[i].insert(0, midi_cc[i])
+                    self.pot[i].insert(0, pot_mcc[i])
+            btn_cfg = midi_msg.data[POT_NB+1:POT_NB+1+BTN_NB*2]
+            for i in range(BTN_NB):
+                btn_mcc = btn_cfg[i*2]
+                btn_tog = btn_cfg[i*2+1]
+                # Do not update an Entry that being edited
+                if self.root.focus_get() != self.btn_mcc[i]:
+                    self.btn_mcc[i].delete(0,"end")
+                    self.btn_mcc[i].insert(0, btn_mcc)
+                # Remove callback on toggle
+                self.var_tog[i].trace_remove(*self.var_tog[i].trace_info()[0])
+                self.var_tog[i].set(btn_tog)
+                # Set back the callback
+                self.var_tog[i].trace('w', lambda *args,idx=i: self.on_change_btn_tog(idx))
 
     def on_close(self):
         """
