@@ -1,3 +1,6 @@
 [submodule "fritzing-parts"]
 	path = fritzing-parts
 	url = https://github.com/htho/fritzing-parts
+[submodule "midi-octopot/Control-Surface"]
+	path = midi-octopot/Control-Surface
+	url = https://github.com/tttapa/Control-Surface/
