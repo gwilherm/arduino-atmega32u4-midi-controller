@@ -156,6 +156,12 @@ void resetConfig()
 {
   for (int i = 0; i < POT_NB; i++)
     pot_mcc[i] = default_pot_mcc[i];
+
+  for (int i = 0; i < BTN_NB; i++)
+  {
+    btn_cfg[i].mcc = default_btn_mcc[i];
+    btn_cfg[i].tog = default_btn_tog[i];
+  }
 }
 
 void handleSysEx(byte* array, unsigned size)
