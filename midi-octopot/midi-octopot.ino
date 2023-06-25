@@ -54,14 +54,13 @@ typedef struct
 {
   uint8_t syx_hdr; // 0xF0
   uint8_t msg_idx;
-  uint8_t pot_idx;
-  uint8_t pot_mcc;
+  uint8_t ctl_idx;
+  uint8_t ctl_val;
   uint8_t syx_ftr; // 0xF7
 } patch_cmd_t;
 
 void sendPatchStatus()
 {
-  // TODO: To be completed
   patch_sts_u sts;
   sts.sts.syx_hdr = 0xF0;
   sts.sts.syx_ftr = 0xF7;
@@ -79,7 +78,6 @@ void sendPatchStatus()
         sts.sts.btn_cfg[i].mcc = static_cast<CCButtonLatched*>(btn[i])->getAddress().getAddress();
       else
         sts.sts.btn_cfg[i].mcc = static_cast<CCButton*>(btn[i])->getAddress().getAddress();
-
       sts.sts.btn_cfg[i].tog = btn_tog[i];
     }
   }
@@ -87,24 +85,81 @@ void sendPatchStatus()
   midi.sendSysEx(sts.array);
 }
 
-void updatePatch(const uint8_t* array, unsigned size)
+void updatePotPatch(const uint8_t* array, unsigned size)
 {
-  // TODO: To be completed
   if (size == sizeof(patch_cmd_t))
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
-    if ((patch->pot_idx < POT_NB) && (patch->pot_mcc <= 127))
-    if (pot[patch->pot_idx])
-      pot[patch->pot_idx]->setAddress(patch->pot_mcc);
+    if ((patch->ctl_idx < POT_NB) && (patch->ctl_val <= 127))
+      if (pot[patch->ctl_idx])
+        pot[patch->ctl_idx]->setAddress(patch->ctl_val);
+  }
+}
+
+void updateBtnPatch(const uint8_t* array, unsigned size)
+{
+  if (size == sizeof(patch_cmd_t))
+  {
+    patch_cmd_t* patch = (patch_cmd_t*)array;
+    if ((patch->ctl_idx < BTN_NB) && (patch->ctl_val <= 127))
+    {
+      if (btn[patch->ctl_idx])
+      {
+        if (btn_tog[patch->ctl_idx])
+          static_cast<CCButtonLatched*>(btn[patch->ctl_idx])->setAddressUnsafe(patch->ctl_val);
+        else
+          static_cast<CCButton*>(btn[patch->ctl_idx])->setAddressUnsafe(patch->ctl_val);
+      }
+    }
+  }
+}
+
+void updateBtnToggle(byte* array, unsigned size)
+{
+  if (size == sizeof(patch_cmd_t))
+  {
+    patch_cmd_t* patch = (patch_cmd_t*)array;
+    if ((patch->ctl_idx < BTN_NB) && (patch->ctl_val <= 1))
+    {
+      uint8_t mcc = default_btn_mcc[patch->ctl_idx];
+      if (btn[patch->ctl_idx])
+      {
+        if (btn_tog[patch->ctl_idx])
+          mcc = static_cast<CCButtonLatched*>(btn[patch->ctl_idx])->getAddress().getAddress();
+        else
+          mcc = static_cast<CCButton*>(btn[patch->ctl_idx])->getAddress().getAddress();
+        delete btn[patch->ctl_idx];
+      }
+      
+    if ((bool)patch->ctl_val)
+      btn[patch->ctl_idx] = new CCButtonLatched(btn_pin[patch->ctl_idx], mcc);
+    else
+      btn[patch->ctl_idx] = new CCButton(btn_pin[patch->ctl_idx], mcc);
+    }
   }
 }
 
 void saveConfig()
 {
-  // TODO: To be completed
   for (int i = 0; i < POT_NB; i++)
+  {
     if (pot[i])
       EEPROM.update(i, pot[i]->getAddress().getAddress());
+  }
+
+  for (int i = 0; i < BTN_NB; i++)
+  {
+    uint8_t mcc = default_btn_mcc[i];
+    if (btn[i])
+    {
+      if (btn_tog[i])
+        mcc = static_cast<CCButtonLatched*>(btn[i])->getAddress().getAddress();
+      else
+        mcc = static_cast<CCButton*>(btn[i])->getAddress().getAddress();
+    }
+    EEPROM.update(POT_NB+i,   mcc);
+    EEPROM.update(POT_NB+i+1, btn_tog[i]);
+  }
 }
 
 void restoreConfig()
@@ -138,16 +193,23 @@ void restoreConfig()
 
 void resetConfig()
 {
-  // TODO: To be completed
   for (int i = 0; i < POT_NB; i++)
     if (pot[i])
       pot[i]->setAddress(default_pot_mcc[i]);
+
+  for (int i = 0; i < BTN_NB; i++)
+  {
+    uint8_t mcc = default_btn_mcc[i];
+    if (default_btn_tog[i])
+      btn[i] = new CCButtonLatched(btn_pin[i], mcc);
+    else
+      btn[i] = new CCButton(btn_pin[i], mcc);
+  }
 }
 
 // Custom MIDI callback that prints incoming SysEx messages.
 struct MyMIDI_Callbacks : MIDI_Callbacks {
  
-  // TODO: To be completed
   // This callback function is called when a SysEx message is received.
   void onSysExMessage(MIDI_Interface &, SysExMessage sysex) override {
 #ifdef DEBUG
@@ -164,7 +226,13 @@ struct MyMIDI_Callbacks : MIDI_Callbacks {
         sendPatchStatus();
         break;
       case PATCH_POT_CMD:
-        updatePatch(sysex.data, sysex.length);
+        updatePotPatch(sysex.data, sysex.length);
+        break;
+      case PATCH_BTN_CMD:
+        updateBtnPatch(sysex.data, sysex.length);
+        break;
+      case TOGGLE_BTN_CMD:
+        updateBtnToggle(sysex.data, sysex.length);
         break;
       case SAVE_CMD:
         saveConfig();
