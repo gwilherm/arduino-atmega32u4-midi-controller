@@ -114,7 +114,7 @@ void updateBtnPatch(const uint8_t* array, unsigned size)
   }
 }
 
-void updateBtnToggle(byte* array, unsigned size)
+void updateBtnToggle(const uint8_t* array, unsigned size)
 {
   if (size == sizeof(patch_cmd_t))
   {
