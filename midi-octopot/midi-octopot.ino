@@ -130,8 +130,9 @@ void updateBtnToggle(const uint8_t* array, unsigned size)
           mcc = static_cast<CCButton*>(btn[patch->ctl_idx])->getAddress().getAddress();
         delete btn[patch->ctl_idx];
       }
-      
-    if ((bool)patch->ctl_val)
+
+    btn_tog[patch->ctl_idx] = (bool)patch->ctl_val;
+    if (btn_tog[patch->ctl_idx])
       btn[patch->ctl_idx] = new CCButtonLatched(btn_pin[patch->ctl_idx], mcc);
     else
       btn[patch->ctl_idx] = new CCButton(btn_pin[patch->ctl_idx], mcc);
@@ -200,7 +201,8 @@ void resetConfig()
   for (int i = 0; i < BTN_NB; i++)
   {
     uint8_t mcc = default_btn_mcc[i];
-    if (default_btn_tog[i])
+    btn_tog[i] = default_btn_tog[i];
+    if (btn_tog[i])
       btn[i] = new CCButtonLatched(btn_pin[i], mcc);
     else
       btn[i] = new CCButton(btn_pin[i], mcc);
