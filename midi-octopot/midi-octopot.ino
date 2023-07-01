@@ -168,10 +168,9 @@ void restoreConfig()
   for (int i = 0; i < POT_NB; i++)
   {
     uint8_t mcc = EEPROM.read(i);
-    if (mcc <= 127)
-      pot[i] = new CCPotentiometer(pot_pin[i], mcc);
-    else
-      pot[i] = new CCPotentiometer(pot_pin[i], default_pot_mcc[i]);
+    if (mcc > 127)
+      mcc = default_pot_mcc[i];
+    pot[i] = new CCPotentiometer(pot_pin[i], mcc);
   }
 
   for (int i = 0; i < BTN_NB; i++)
