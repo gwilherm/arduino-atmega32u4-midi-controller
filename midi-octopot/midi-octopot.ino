@@ -15,9 +15,9 @@ uint8_t pot_pin[] = {A10, A9, A8, A7,
                      A0,  A1, A2, A3};
 uint8_t btn_pin[] = {2, 3, 4, 5};
 
-CCPotentiometer*   pot[POT_NB];
-MIDIOutputElement* btn[BTN_NB];
-bool               btn_tog[BTN_NB];
+CCPotentiometer*       pot[POT_NB];
+MIDIAddressableUnsafe* btn[BTN_NB];
+bool                   btn_tog[BTN_NB];
 
 enum
 {
@@ -74,10 +74,7 @@ void sendPatchStatus()
   {
     if (btn[i])
     {
-      if (btn_tog[i])
-        sts.sts.btn_cfg[i].mcc = static_cast<CCButtonLatched*>(btn[i])->getAddress().getAddress();
-      else
-        sts.sts.btn_cfg[i].mcc = static_cast<CCButton*>(btn[i])->getAddress().getAddress();
+      sts.sts.btn_cfg[i].mcc = btn[i]->getAddress().getAddress();
       sts.sts.btn_cfg[i].tog = btn_tog[i];
     }
   }
@@ -102,15 +99,8 @@ void updateBtnPatch(const uint8_t* array, unsigned size)
   {
     patch_cmd_t* patch = (patch_cmd_t*)array;
     if ((patch->ctl_idx < BTN_NB) && (patch->ctl_val <= 127))
-    {
       if (btn[patch->ctl_idx])
-      {
-        if (btn_tog[patch->ctl_idx])
-          static_cast<CCButtonLatched*>(btn[patch->ctl_idx])->setAddressUnsafe(patch->ctl_val);
-        else
-          static_cast<CCButton*>(btn[patch->ctl_idx])->setAddressUnsafe(patch->ctl_val);
-      }
-    }
+          btn[patch->ctl_idx]->setAddressUnsafe(patch->ctl_val);
   }
 }
 
@@ -124,10 +114,7 @@ void updateBtnToggle(const uint8_t* array, unsigned size)
       uint8_t mcc = default_btn_mcc[patch->ctl_idx];
       if (btn[patch->ctl_idx])
       {
-        if (btn_tog[patch->ctl_idx])
-          mcc = static_cast<CCButtonLatched*>(btn[patch->ctl_idx])->getAddress().getAddress();
-        else
-          mcc = static_cast<CCButton*>(btn[patch->ctl_idx])->getAddress().getAddress();
+        mcc = btn[patch->ctl_idx]->getAddress().getAddress();
         delete btn[patch->ctl_idx];
       }
 
@@ -152,12 +139,7 @@ void saveConfig()
   {
     uint8_t mcc = default_btn_mcc[i];
     if (btn[i])
-    {
-      if (btn_tog[i])
-        mcc = static_cast<CCButtonLatched*>(btn[i])->getAddress().getAddress();
-      else
-        mcc = static_cast<CCButton*>(btn[i])->getAddress().getAddress();
-    }
+      mcc = btn[i]->getAddress().getAddress();
     EEPROM.update(POT_NB+i,   mcc);
     EEPROM.update(POT_NB+i+1, btn_tog[i]);
   }
